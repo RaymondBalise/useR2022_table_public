@@ -141,3 +141,5 @@ _bookdown_files/
 *.ZIP
 
 !license.txt
+!lab/Population_by_Year_by_County.xlsx
+!lab/urban_rural_florida2016.xlsx

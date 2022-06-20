@@ -1,0 +1,334 @@
+---
+title: "Tutorial"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE, message=FALSE}
+library(learnr)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+suppressMessages(library(tidyverse))
+library(readxl)
+library(dplyr)
+
+population_raw <- 
+  read_xlsx("./Population_by_Year_by_County.xlsx",skip = 3) %>% 
+  rename("County" = "Year")
+
+county <-
+  population_raw %>%
+  mutate(
+    across( # get rid of commas
+      c(starts_with("20"), Total), 
+      ~ str_remove_all(.x, pattern = ","))
+  ) %>%
+  mutate(across(c(starts_with("20"), Total), as.numeric)) %>% 
+  mutate(Change = `2020` - `2016`) %>% 
+  rowwise() %>% 
+  mutate(Average = mean(c(`2016`, `2017`, `2018`, `2019`, `2020`))) %>% 
+  select(County, Change, Average)
+
+population <- 
+  population_raw %>%
+  pivot_longer(!c("County", "Total"),
+    names_to = "Year",
+    values_to = "Population") %>%
+  mutate(Population=str_remove_all(Population, ","),
+         Total=str_remove_all(Total, ","))  %>%
+  mutate(Population=as.numeric(Population),
+         Total=as.numeric(Total))  %>%
+  select(County, Year, Population)
+
+urban_rural <- 
+  read_xlsx("./urban_rural_florida2016.xlsx", col_names = FALSE) %>%
+  rename("Area" = "...1",
+         "County" = "...2") %>%
+  mutate(Area=case_when(Area=="U" ~ "Urban",
+                            Area=="R" ~ "Rural",
+                            TRUE ~ Area))
+  
+population <- left_join(population, urban_rural, by = c("County" = "County"))
+
+```
+
+## The Data
+
+Florida, like most of America, has problems getting enough MDs practicing in rural areas.  Florida Health Charts provides information on the [population of each county](https://www.flhealthcharts.gov/FLQUERY_New/Population/Count#) and a PDF showing the [urban and rural counties](https://www.floridahealth.gov/provider-and-partner-resources/community-health-workers/health-professional-shortage-designations/Rural%20Counties%20Map%202016.pdf). We have loaded the data for you.
+
+The population data provided by Florida is not ideal.  These data show the population estimates in 2016 through 2020 in wide format (not tidy format) and dataset includes the five year *total* population instead of the average.  Here are the first couple of counties.
+
+```{r raw}
+library(reactable)
+population_raw %>%
+  reactable::reactable(defaultPageSize=5)
+```
+
+These data, shown like this, are not ideal to show the population trends in the urban and rural counties.
+
+We created two tables. One called `county` has the average and changes in the Florida counties. It has one record per county in Florida plus a "Total" row. It starts like this:
+
+```{r county}
+library(reactable)
+county %>% 
+  reactable::reactable(defaultPageSize=5)
+
+#,
+#    columns = list(
+#      lumns = list(
+#      Average = colDef(format = colFormat(separators = TRUE, digits = 0))
+#      Average = colDef(format = colFormat(separators = TRUE, digits = 0))
+#    )
+#  )
+```
+
+The other, which has the data in tidy format, is called `population`. There is one record per county per year. It starts like this:
+
+```{r population}
+population %>%
+  reactable::reactable(defaultPageSize=7)
+```
+
+## Display Raw Data
+
+### `kableExtra::kbl()`
+
+Use the `kableExtra` package to create a table with the population by county in 2020.  Create a table with a caption, then use the `kable_styling()` function with the appropriate bootstrap option to add row striping and hover over highlighting in a HTML document.  <mark>To do it, replace the --- with appropriate details <mark>and remove the `print()` function call</mark>.
+
+```{r kableExtra, exercise=TRUE, exercise.eval=TRUE}
+suppressMessages(library(kableExtra))
+
+population %>%
+  filter(Year=="2020") %>%
+  select(County, Population) %>%
+  arrange(desc(Population)) %>%
+  #---(caption = "Florida population 2020") %>%
+  #kable_styling(--- = c("striped", "hover")) %>% 
+  print()
+```
+
+```{r kableExtra-solution}
+suppressMessages(library(kableExtra))
+
+population %>%
+  filter(Year=="2020") %>%
+  select(County, Population) %>%
+  arrange(desc(Population)) %>%
+  kbl(caption = "Florida population 2020") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+
+### `gt::gt()`
+
+For `gt`, create a table with a caption, then add the appropriate table style function to make the cell text bold for the county and population columns. 
+
+```{r gt, exercise=TRUE, exercise.eval=TRUE}
+library(gt)
+
+population %>%
+  filter(Year=="2020") %>%
+  select(County, Population) %>%
+  arrange(desc(Population)) %>%
+  #---(caption="Florida population 2020") %>%
+  #---_style(
+  #  --- = list(cell_text(weight = "bold")),
+  #  locations = cells_column_labels(--- = c(County, Population))
+  #) 
+  print()
+```
+
+```{r gt-solution}
+library(gt)
+
+population %>%
+  filter(Year=="2020") %>%
+  select(County, Population) %>%
+  arrange(desc(Population)) %>%
+  gt(caption="Florida population 2020") %>%
+  tab_style(
+    style = list(cell_text(weight = "bold")),
+    locations = cells_column_labels(columns = c(County, Population))
+  ) 
+```
+
+
+### `flextable::flextable()`
+
+For the `flextable` package, call the `flextable` function, and add the appropriate table style function to make the cell text bold for the county and population columns. 
+
+```{r flextable, exercise=TRUE, exercise.eval=TRUE}
+suppressMessages(library(flextable))
+population %>%
+  filter(Year=="2020") %>%
+  select(County, Population) %>%
+  # flextable() %>%
+  # set_caption(--- ="Florida population 2020") %>%
+  # bold(part = "header")
+  print()
+```
+
+```{r flextable-solution}
+suppressMessages(library(flextable))
+population %>%
+  filter(Year=="2020") %>%
+  select(County, Population) %>%
+  flextable() %>%
+  set_caption(caption="Florida population 2020") %>%
+  bold(part = "header")
+```
+
+
+## Summary Statistics Table
+
+### `table1::table1`
+
+Use the appropriate function from the `table1` package to make a summary of the population by `Area`. Add a caption.
+
+```{r table1, exercise=TRUE, exercise.eval=TRUE}
+library(table1)
+population %>%
+  filter(Year=="2020") %>%
+  filter(County!="Total") %>%
+  #---(~  Population --- Area, 
+  #       --- = "Florida population 2020" ,
+  #       data = .)
+  print()
+```
+
+```{r table1-solution}
+library(table1)
+population %>%
+  filter(Year=="2020") %>%
+  filter(County!="Total") %>%
+  table1(~  Population | Area, 
+         caption = "Florida population 2020" ,
+         data = .)
+```
+
+### `gtsummary::tbl_summary`
+
+Use the appropriate `gtsummary` function to make a summary table which has data processed by `Area`.
+
+```{r gtsummary, exercise=TRUE, exercise.eval=TRUE, warning=FALSE}
+library(gtsummary)
+population %>%
+  filter(Year == "2020") %>%
+  filter(County != "Total") %>% 
+  select(Population, Area) %>%
+  # ---(--- = Area)
+  print()
+```
+
+```{r gtsummary-solution}
+library(gtsummary)
+population %>%
+  filter(Year == "2020") %>%
+  filter(County != "Total") %>% 
+  select(Population, Area) %>%
+  tbl_summary(by = Area)
+```
+
+## Dynamic Table
+
+### `reactable::reactable()`
+
+Use the `reactable` package to show the population data grouped by the Urban/Rural `Area` status.
+
+```{r reactable, exercise=TRUE, exercise.eval=TRUE}
+library(reactable)
+population %>%
+  filter(County != "Total") %>% 
+  #---(--- = "Area")
+  print()
+```
+
+```{r reactable-solution}
+library(reactable)
+population %>%
+  filter(County != "Total") %>% 
+  reactable(groupBy = "Area")
+```
+
+Next, make a `reactable` table that groups the data by both Urban/Rural `Area` status and `County`. Aggregate the `Year` to show frequency counts, the `Population` to show the mean and the Urban/Rural `Area` status to show the two unique values.
+
+```{r reactable2, exercise=TRUE, exercise.eval=TRUE}
+library(reactable)
+population %>%
+  filter(County != "Total") %>% 
+  select(County, Year, Population, Area) %>%
+  reactable(
+  #  groupBy = ---,
+  #  columns = list(
+  #    Year = colDef(aggregate = "---"),
+  #    Population = colDef(aggregate = "---"),
+  #    Area = colDef(aggregate = "---")
+  #  )
+)
+```
+
+```{r reactable2-solution}
+library(reactable)
+population %>%
+  filter(County != "Total") %>% 
+  select(County, Year, Population, Area) %>%
+  reactable(
+    groupBy = c("Area", "County"),
+    columns = list(
+      Year = colDef(aggregate = "frequency"),
+      Population = colDef(aggregate = "mean"),
+      Area = colDef(aggregate = "unique")
+    )
+)
+```
+
+
+Finally, make a `reactable` table that shows the change in the population as a bar chart.  Set the `Average` and the numeric summary in the `Change` variable to display rounded with commas.
+
+```{r reactable3, exercise=TRUE, exercise.eval=TRUE}
+library(reactable)
+library(reactablefmtr)
+county %>%
+  filter(County != "Total") %>% 
+  select(County, Average, Change) %>%
+  #reactable(
+  #  defaultPageSize=70,
+  #  columns = list(
+  #    County = colDef(),
+  #    Average = colDef(format = colFormat(digits = ---, separators = ---)),
+  #    Change = colDef(
+  #      aggregate = "unique", 
+  #      format = colFormat(digits = 0, separators = TRUE), 
+  #      cell = data_bars(
+  #        data = ., 
+  #        text_position = "outside-base", 
+  #        number_fmt = scales::---
+  #      )
+  #    )
+  #  )
+  #)
+  print()
+```
+
+```{r reactable3-solution}
+library(reactable)
+library(reactablefmtr)
+county %>%
+  filter(County != "Total") %>% 
+  select(County, Average, Change) %>%
+  reactable(
+    defaultPageSize=70,
+    columns = list(
+      County = colDef(),
+      Average = colDef(format = colFormat(digits = 0, separators = TRUE)),
+      Change = colDef(
+        aggregate = "unique", 
+        format = colFormat(digits = 0, separators = TRUE), 
+        cell = data_bars(
+          data = ., 
+          text_position = "outside-base", 
+          number_fmt = scales::comma
+        )
+      )
+    )
+)
+```
