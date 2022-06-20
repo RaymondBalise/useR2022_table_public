@@ -1763,7 +1763,7 @@ the_start %>%
 ]]
 
 ---
-# Favorite .blue[`reactable`] Featuers 
+# Favorite .blue[`reactable`] Features 
 
 + The ability to collapse/expand groups
 + Embed graphics
@@ -1915,7 +1915,7 @@ lar_data %>%
 .scroll-box-20[
 ```{r, eval=FALSE}
 library(htmltools)
-library(reactablefmtr)
+suppressPackageStartupMessages(library(reactablefmtr))
 
 lar_data %>%
   reactable(
