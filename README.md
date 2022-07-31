@@ -57,6 +57,13 @@ remotes::install_github(
 
 **Francisco Cardozo**, MS, is a data analyst and a PhD student at the University of Miami. He has been working on the evaluation of international preventive programs and developing tools to help communities quickly access the information they need to prevent alcohol use in adolescents.
 
+# Extra Stuff
+
+In the tutorial lecture I mentioned a couple additional topics that were missing links.  Here they are:
+
++ To check to make sure that your images are colorblind safe, try the [Coblis website](https://www.color-blindness.com/coblis-color-blindness-simulator/).
++ For a checklist on publications, look at the [equator network website](https://www.equator-network.org/reporting-guidelines/strobe/).
+
 # License
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
